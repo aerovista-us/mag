@@ -168,18 +168,17 @@ function preload(src){
 }
 
 function resetTransforms(immediate=false){
-  page.style.transition = immediate ? "none" : "transform .22s ease";
-  shade.style.transition = immediate ? "none" : "opacity .15s ease";
+  page.style.transition = immediate ? "none" : "transform .32s cubic-bezier(.34, 1.2, .42, 1)";
+  shade.style.transition = immediate ? "none" : "opacity .2s ease";
   shade.style.opacity = "0";
-  page.style.transform = `translateZ(0) rotateY(0deg) translateX(0px)`;
+  page.style.transform = "translateZ(0) rotateX(0deg) rotateY(0deg) translateX(0px)";
   if(immediate){
     page.style.transformOrigin = "100% 50%";
-    requestAnimationFrame(()=>{ page.style.transition = "transform .22s ease"; });
+    requestAnimationFrame(()=>{ page.style.transition = "transform .26s cubic-bezier(.25,.85,.35,1)"; });
   }
   underImg.style.filter = "none";
   if(!immediate){
-    // After snap-back, reset origin to default for next drag
-    setTimeout(()=>{ page.style.transformOrigin = "100% 50%"; }, 260);
+    setTimeout(()=>{ page.style.transformOrigin = "100% 50%"; }, 340);
   }
 }
 
@@ -333,16 +332,22 @@ function moveDrag(e){
   const rect = page.getBoundingClientRect();
   const norm = clamp(dx / rect.width, -1, 1);
 
-  // Paper-like: fold follows finger (origin already at touch); more curl, less slide
-  const resist = (dir === 0) ? 0.4 : 1;
-  const rotate = clamp(-norm * 120 * resist, -120, 120);
-  const translate = clamp(dx * 0.55 * resist, -rect.width*0.85, rect.width*0.85);
-  const z = Math.abs(norm) * 50;
+  // Paper-like: fold stays under finger (origin at touch); curl follows naturally
+  const resist = (dir === 0) ? 0.45 : 1;
+  const eased = norm * (0.72 + 0.28 * Math.abs(norm)); // soft start, then full response
+  const rotateY = clamp(-eased * 118 * resist, -118, 118);
+  const translate = clamp(dx * 0.5 * resist, -rect.width * 0.88, rect.width * 0.88);
+  const z = Math.abs(norm) * 55;
 
-  page.style.transform = `translateZ(${z}px) rotateY(${rotate}deg) translateX(${translate}px)`;
+  // Slight rotateX from where you grabbed: top vs bottom changes tilt of the fold (3D paper)
+  const tiltX = (0.5 - originY / 100) * 14 * Math.sign(norm);
+  const rotateX = clamp(tiltX, -12, 12);
 
-  const sh = clamp(Math.abs(norm) * 1.1, 0, 1);
-  shade.style.opacity = String(0.10 + sh * 0.85);
+  page.style.transform =
+    `translateZ(${z}px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateX(${translate}px)`;
+
+  const sh = clamp(Math.abs(norm) * 1.15, 0, 1);
+  shade.style.opacity = String(0.12 + sh * 0.82);
 }
 
 function endDrag(){
@@ -362,20 +367,20 @@ function endDrag(){
     commit = aligned && (distCommit || flick);
   }
 
-  page.style.transition = "transform .24s cubic-bezier(.2,.9,.2,1)";
-  shade.style.transition = "opacity .18s ease";
-
   if(commit){
-    // Flip away from the same anchor point the user dragged from (natural paper feel)
+    // Flip away from the same anchor (fold follows where you held)
     page.style.transformOrigin = `${originX}% ${originY}%`;
-    page.style.transition = "transform .24s cubic-bezier(.2,.9,.2,1)";
-    const off = (dir === +1) ? -rect.width*1.25 : rect.width*1.25;
-    const rot = (dir === +1) ? 120 : -120;
-    page.style.transform = `translateZ(60px) rotateY(${rot}deg) translateX(${off}px)`;
+    page.style.transition = "transform .28s cubic-bezier(.22,.88,.32,1)";
+    shade.style.transition = "opacity .2s ease";
+    const off = (dir === +1) ? -rect.width * 1.3 : rect.width * 1.3;
+    const rot = (dir === +1) ? 118 : -118;
+    const tilt = (0.5 - originY / 100) * 10 * (dir === +1 ? 1 : -1);
+    page.style.transform = `translateZ(65px) rotateX(${tilt}deg) rotateY(${rot}deg) translateX(${off}px)`;
     shade.style.opacity = "0";
-
-    setTimeout(()=> commitTurn(dir), 210);
+    setTimeout(()=> commitTurn(dir), 260);
   }else{
+    page.style.transition = "transform .32s cubic-bezier(.34, 1.2, .42, 1)";
+    shade.style.transition = "opacity .2s ease";
     resetTransforms(false);
   }
 }
