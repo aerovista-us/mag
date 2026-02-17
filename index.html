@@ -2,15 +2,19 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Vault Zine</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#0b0d12" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Vault Zine — Mobile Magazine</title>
   <link rel="stylesheet" href="./assets/css/app.css" />
 </head>
 <body>
   <div class="app">
     <header class="topbar">
       <div class="brand">
-        <div class="kicker">mobile comic zine</div>
+        <div class="kicker">mobile magazine</div>
         <div class="title" id="zineTitle">Vault Zine</div>
       </div>
 
@@ -31,8 +35,8 @@
           <img class="underMedia" id="underImg" alt="" />
         </div>
 
-        <div class="page" id="page" role="application" aria-label="Page turn surface">
-          <img class="pageMedia" id="pageImg" alt="Comic page" />
+        <div class="page" id="page" role="application" aria-label="Magazine page — drag to turn">
+          <img class="pageMedia" id="pageImg" alt="Magazine page" />
           <div class="shade" id="shade"></div>
 
           <div class="back" id="back" aria-hidden="true">
@@ -52,7 +56,7 @@
     </main>
 
     <footer class="footer">
-      <div class="hint" id="hint">Swipe left/right on the page — it anchors to your finger like paper.</div>
+      <div class="hint" id="hint">Touch the page and drag — the fold follows your finger like real paper.</div>
       <div class="progress" id="dots" aria-hidden="true"></div>
     </footer>
   </div>

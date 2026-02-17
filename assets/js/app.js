@@ -172,10 +172,14 @@ function resetTransforms(immediate=false){
   shade.style.transition = immediate ? "none" : "opacity .15s ease";
   shade.style.opacity = "0";
   page.style.transform = `translateZ(0) rotateY(0deg) translateX(0px)`;
-  page.style.transformOrigin = "100% 50%";
-  underImg.style.filter = "none";
   if(immediate){
+    page.style.transformOrigin = "100% 50%";
     requestAnimationFrame(()=>{ page.style.transition = "transform .22s ease"; });
+  }
+  underImg.style.filter = "none";
+  if(!immediate){
+    // After snap-back, reset origin to default for next drag
+    setTimeout(()=>{ page.style.transformOrigin = "100% 50%"; }, 260);
   }
 }
 
@@ -307,9 +311,6 @@ function moveDrag(e){
   const px = pt.x;
   const dx = px - startX;
 
-  // debug: show dx live
-  counter.textContent = `dx ${Math.round(dx)} · ${counter.textContent}`;
-
   if(dir === 0 && Math.abs(dx) > 8){
     dir = dx < 0 ? +1 : -1;
 
@@ -332,10 +333,11 @@ function moveDrag(e){
   const rect = page.getBoundingClientRect();
   const norm = clamp(dx / rect.width, -1, 1);
 
-  const resist = (dir === 0) ? 0.25 : 1;
-  const rotate = clamp(-norm * 115 * resist, -115, 115);
-  const translate = clamp(dx * 0.85 * resist, -rect.width*0.9, rect.width*0.9);
-  const z = Math.abs(norm) * 40;
+  // Paper-like: fold follows finger (origin already at touch); more curl, less slide
+  const resist = (dir === 0) ? 0.4 : 1;
+  const rotate = clamp(-norm * 120 * resist, -120, 120);
+  const translate = clamp(dx * 0.55 * resist, -rect.width*0.85, rect.width*0.85);
+  const z = Math.abs(norm) * 50;
 
   page.style.transform = `translateZ(${z}px) rotateY(${rotate}deg) translateX(${translate}px)`;
 
@@ -364,6 +366,9 @@ function endDrag(){
   shade.style.transition = "opacity .18s ease";
 
   if(commit){
+    // Flip away from the same anchor point the user dragged from (natural paper feel)
+    page.style.transformOrigin = `${originX}% ${originY}%`;
+    page.style.transition = "transform .24s cubic-bezier(.2,.9,.2,1)";
     const off = (dir === +1) ? -rect.width*1.25 : rect.width*1.25;
     const rot = (dir === +1) ? 120 : -120;
     page.style.transform = `translateZ(60px) rotateY(${rot}deg) translateX(${off}px)`;
