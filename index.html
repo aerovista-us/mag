@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Vault Zine</title>
+  <link rel="stylesheet" href="./assets/css/app.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="kicker">mobile comic zine</div>
+        <div class="title" id="zineTitle">Vault Zine</div>
+      </div>
+
+      <div class="controls">
+        <div class="pill">
+          <button class="btn" id="prevBtn" aria-label="Previous page">⟵</button>
+          <div id="counter">—</div>
+          <button class="btn" id="nextBtn" aria-label="Next page">⟶</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="stageWrap">
+      <div class="stage" id="stage" aria-label="Magazine reader">
+        <div class="frame"></div>
+
+        <div class="under" id="under" aria-hidden="true">
+          <img class="underMedia" id="underImg" alt="" />
+        </div>
+
+        <div class="page" id="page" role="application" aria-label="Page turn surface">
+          <img class="pageMedia" id="pageImg" alt="Comic page" />
+          <div class="shade" id="shade"></div>
+
+          <div class="back" id="back" aria-hidden="true">
+            <div class="stamp">VAULT ZINE</div>
+            <div class="stamp" id="backStamp">PAGE</div>
+          </div>
+
+          <div class="caption" aria-hidden="true">
+            <div class="left">
+              <div class="label" id="label">—</div>
+              <div class="headline" id="headline">—</div>
+            </div>
+            <div class="pageNum" id="pageNum">—</div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="hint" id="hint">Swipe left/right on the page — it anchors to your finger like paper.</div>
+      <div class="progress" id="dots" aria-hidden="true"></div>
+    </footer>
+  </div>
+
+  <script src="./assets/js/app.js"></script>
+</body>
+</html>
