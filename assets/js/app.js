@@ -263,21 +263,27 @@ function commitTurn(d){
 // Tactile page turn
 // ----------------------
 
+function getPoint(e){
+  if(e.touches && e.touches[0]) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  return { x: e.clientX, y: e.clientY };
+}
+
 function startDrag(e){
   if(e.button !== undefined && e.button !== 0) return;
   if(MAGS.length <= 0 || PAGES.length <= 1 && MAGS.length <= 1) return;
 
-  const rect = page.getBoundingClientRect();
-  const px = (e.clientX ?? (e.touches && e.touches[0].clientX));
-  const py = (e.clientY ?? (e.touches && e.touches[0].clientY));
+  const pt = getPoint(e);
+  if(pt.x == null) return;
+  e.preventDefault?.();
 
-  const x = px - rect.left;
-  const y = py - rect.top;
+  const rect = page.getBoundingClientRect();
+  const x = pt.x - rect.left;
+  const y = pt.y - rect.top;
 
   dragging = true;
-  startX = px;
-  startY = py;
-  lastX = px;
+  startX = pt.x;
+  startY = pt.y;
+  lastX = pt.x;
   lastT = performance.now();
   vx = 0;
   dir = 0;
@@ -291,14 +297,18 @@ function startDrag(e){
   shade.style.transition = "none";
   shade.style.opacity = "1";
 
-  page.setPointerCapture?.(e.pointerId);
+  if(e.pointerId !== undefined) page.setPointerCapture?.(e.pointerId);
 }
 
 function moveDrag(e){
   if(!dragging) return;
-
-  const px = (e.clientX ?? (e.touches && e.touches[0].clientX));
+  const pt = getPoint(e);
+  e.preventDefault?.();
+  const px = pt.x;
   const dx = px - startX;
+
+  // debug: show dx live
+  counter.textContent = `dx ${Math.round(dx)} · ${counter.textContent}`;
 
   if(dir === 0 && Math.abs(dx) > 8){
     dir = dx < 0 ? +1 : -1;
@@ -376,6 +386,12 @@ page.addEventListener("pointermove", moveDrag);
 page.addEventListener("pointerup", endDrag);
 page.addEventListener("pointercancel", endDrag);
 page.addEventListener("pointerleave", ()=>{ if(dragging) endDrag(); });
+
+// Touch fallback (iOS Safari sometimes prefers touch events)
+page.addEventListener("touchstart", (e)=> startDrag(e), { passive: false });
+page.addEventListener("touchmove",  (e)=> moveDrag(e),  { passive: false });
+page.addEventListener("touchend",   ()=> endDrag());
+page.addEventListener("touchcancel", ()=> endDrag());
 
 // buttons
 prevBtn.addEventListener("click", ()=>{

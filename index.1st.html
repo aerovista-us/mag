@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Vault Zine — Mobile Comic</title>
+  <style>
+    :root{
+      --bg:#0b0d12;
+      --paper:#101522;
+      --ink:#e9ecff;
+      --muted:#9aa3c7;
+      --edge:#202845;
+      --shadow: rgba(0,0,0,.55);
+      --shadow2: rgba(0,0,0,.25);
+      --radius: 18px;
+      --safe-top: env(safe-area-inset-top);
+      --safe-bot: env(safe-area-inset-bottom);
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background:
+        radial-gradient(1200px 700px at 20% 5%, rgba(92,64,255,.18), transparent 60%),
+        radial-gradient(900px 600px at 85% 40%, rgba(0,255,198,.12), transparent 65%),
+        linear-gradient(180deg, #0a0c12, #05060a 60%, #070912);
+      color:var(--ink);
+      overflow:hidden;
+    }
+
+    /* Subtle magazine texture */
+    body:before{
+      content:"";
+      position:fixed; inset:0;
+      background:
+        repeating-linear-gradient(0deg, rgba(255,255,255,.03) 0 1px, transparent 1px 4px),
+        url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="220" height="220"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="3" stitchTiles="stitch"/></filter><rect width="220" height="220" filter="url(%23n)" opacity=".05"/></svg>');
+      mix-blend-mode: overlay;
+      pointer-events:none;
+    }
+
+    .app{
+      height:100%;
+      display:flex;
+      flex-direction:column;
+      padding-top: calc(10px + var(--safe-top));
+      padding-bottom: calc(14px + var(--safe-bot));
+      gap:10px;
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 8px 14px;
+    }
+    .brand{
+      display:flex; flex-direction:column; gap:2px;
+      letter-spacing:.2px;
+    }
+    .brand .kicker{
+      font-size:12px;
+      color:var(--muted);
+      text-transform:uppercase;
+      letter-spacing:1.2px;
+    }
+    .brand .title{
+      font-size:16px;
+      font-weight:800;
+    }
+
+    .controls{
+      display:flex; gap:10px; align-items:center;
+      font-size:12px; color:var(--muted);
+      user-select:none;
+    }
+    .pill{
+      display:flex; align-items:center; gap:8px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(10,12,18,.55);
+      backdrop-filter: blur(8px);
+      border-radius: 999px;
+      padding: 8px 10px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.25);
+    }
+    .btn{
+      width:32px; height:32px; border-radius:10px;
+      display:grid; place-items:center;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      color:var(--ink);
+      cursor:pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active{transform:translateY(1px)}
+
+    .stageWrap{
+      flex:1;
+      display:grid;
+      place-items:center;
+      padding: 0 12px;
+    }
+
+    /* The "magazine" frame */
+    .stage{
+      position:relative;
+      width: min(92vw, 520px);
+      height: min(78vh, 860px);
+      border-radius: var(--radius);
+      perspective: 1400px;
+      transform-style: preserve-3d;
+      filter: drop-shadow(0 30px 60px rgba(0,0,0,.45));
+    }
+
+    .frame{
+      position:absolute; inset:0;
+      border-radius: var(--radius);
+      background:
+        linear-gradient(135deg, rgba(255,255,255,.10), transparent 45%),
+        linear-gradient(0deg, rgba(255,255,255,.06), rgba(255,255,255,.02)),
+        radial-gradient(900px 600px at 50% 0%, rgba(255,205,0,.07), transparent 55%),
+        rgba(8,10,14,.35);
+      border: 1px solid rgba(255,255,255,.10);
+      overflow:hidden;
+    }
+
+    /* Two-page stack: current page on top, next/prev under it */
+    .page, .under{
+      position:absolute; inset:12px;
+      border-radius: calc(var(--radius) - 8px);
+      background: #0e1220;
+      overflow:hidden;
+      transform-style:preserve-3d;
+    }
+
+    .under{
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.04), transparent 40%),
+        radial-gradient(800px 500px at 50% 10%, rgba(120,90,255,.10), transparent 55%),
+        rgba(10,12,18,.40);
+    }
+
+    .page{
+      box-shadow:
+        0 20px 40px rgba(0,0,0,.35),
+        inset 0 0 0 1px rgba(255,255,255,.08);
+      background: var(--paper);
+      transform-origin: 100% 50%;
+      will-change: transform;
+      touch-action: none; /* we manage swipes */
+      cursor: grab;
+    }
+    .page:active{cursor:grabbing}
+
+    /* Page content */
+    .pageMedia, .underMedia{
+      position:absolute; inset:0;
+      width:100%; height:100%;
+      object-fit: cover;
+      background:#0b0d12;
+      display:block;
+      transform: translateZ(0);
+    }
+
+    /* Magazine caption strip */
+    .caption{
+      position:absolute;
+      left:12px; right:12px; bottom:12px;
+      padding:10px 12px;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(8,10,14,.55);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 16px 40px rgba(0,0,0,.35);
+      display:flex; justify-content:space-between; align-items:center;
+      gap:10px;
+      pointer-events:none;
+    }
+    .caption .left{
+      display:flex; flex-direction:column; gap:2px;
+      min-width:0;
+    }
+    .caption .label{
+      font-size:11px;
+      color:var(--muted);
+      text-transform:uppercase;
+      letter-spacing:1.1px;
+    }
+    .caption .headline{
+      font-size:14px;
+      font-weight:800;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .caption .pageNum{
+      font-size:12px;
+      color:var(--muted);
+      font-weight:700;
+      flex:0 0 auto;
+    }
+
+    /* Page-turn lighting */
+    .shade{
+      position:absolute; inset:-2px;
+      border-radius: calc(var(--radius) - 8px);
+      pointer-events:none;
+      opacity:0;
+      transition: opacity .15s ease;
+      background:
+        radial-gradient(120% 140% at 100% 50%, rgba(0,0,0,.55), transparent 55%),
+        linear-gradient(90deg, transparent, rgba(0,0,0,.30));
+      mix-blend-mode:multiply;
+    }
+
+    /* Backside of page during curl */
+    .back{
+      position:absolute; inset:0;
+      border-radius: calc(var(--radius) - 8px);
+      background:
+        linear-gradient(135deg, rgba(255,255,255,.10), rgba(255,255,255,.02)),
+        repeating-linear-gradient(0deg, rgba(0,0,0,.04) 0 2px, transparent 2px 6px),
+        #12172a;
+      transform: rotateY(180deg);
+      backface-visibility: hidden;
+      pointer-events:none;
+      display:flex;
+      padding:14px;
+      color: rgba(233,236,255,.85);
+      font-weight:800;
+      letter-spacing:.5px;
+      text-transform:uppercase;
+      font-size:12px;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .back .stamp{
+      border:1px solid rgba(255,255,255,.14);
+      border-radius: 12px;
+      padding: 8px 10px;
+      background: rgba(0,0,0,.20);
+    }
+
+    .hint{
+      text-align:center;
+      font-size:12px;
+      color:var(--muted);
+      padding: 0 16px;
+      user-select:none;
+    }
+
+    .progress{
+      display:flex; justify-content:center; gap:6px;
+      padding: 0 16px;
+    }
+    .dot{
+      width:7px; height:7px;
+      border-radius:999px;
+      background: rgba(255,255,255,.18);
+      border: 1px solid rgba(255,255,255,.10);
+    }
+    .dot.active{ background: rgba(255,255,255,.62); }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div class="brand">
+        <div class="kicker">mobile comic zine</div>
+        <div class="title">Vault Zine — “Blue Box Protocol”</div>
+      </div>
+      <div class="controls">
+        <div class="pill">
+          <button class="btn" id="prevBtn" aria-label="Previous page">⟵</button>
+          <div id="counter">1 / 1</div>
+          <button class="btn" id="nextBtn" aria-label="Next page">⟶</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="stageWrap">
+      <div class="stage" id="stage">
+        <div class="frame"></div>
+
+        <!-- Under page (next/prev) -->
+        <div class="under" id="under">
+          <img class="underMedia" id="underImg" alt="" />
+        </div>
+
+        <!-- Top page (current, draggable) -->
+        <div class="page" id="page">
+          <img class="pageMedia" id="pageImg" alt="" />
+          <div class="shade" id="shade"></div>
+          <div class="back" id="back">
+            <div class="stamp">VAULT ZINE</div>
+            <div class="stamp" id="backStamp">ISSUE 01</div>
+          </div>
+
+          <div class="caption">
+            <div class="left">
+              <div class="label" id="label">Chapter</div>
+              <div class="headline" id="headline">—</div>
+            </div>
+            <div class="pageNum" id="pageNum">Pg 1</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hint">Swipe left/right on the page — it anchors to your finger like paper.</div>
+    <div class="progress" id="dots"></div>
+  </div>
+
+  <script>
+    /**
+     * 1) Put your images next to this HTML file.
+     * 2) Update PAGES with filenames + headlines.
+     *
+     * Tip: Use your generated files, e.g.
+     *  - "A_three-panel_digital_comic_in_Borderlands_comic_b.png"
+     *  - "A_six-panel_digital_comic_in_Borderlands_comic_boo.png"
+     *  - "A_six-panel_comic_page_in_Borderlands_comic_book_s.png"
+     *  - "A_six-panel_comic_page_in_Borderlands_comic_style_.png"
+     *  - "A_six-panel_Borderlands-style_digital_comic_strip_.png"
+     *  - "A_digital_comic_book-style_illustration_in_Borderl.png"
+     */
+    const PAGES = [
+      { src: "A_six-panel_digital_comic_in_Borderlands_comic_boo.png", headline: "Marked: Legendary Holder" },
+      { src: "A_six-panel_comic_page_in_Borderlands_comic_book_s.png", headline: "Boss Fight: The Curator" },
+      { src: "A_six-panel_comic_page_in_Borderlands_comic_style_.png", headline: "Deal’s Off." },
+      { src: "A_six-panel_Borderlands-style_digital_comic_strip_.png", headline: "The Path to Death-Mountain" },
+      { src: "A_digital_comic_book-style_illustration_in_Borderl.png", headline: "Keep It or Break It?" },
+    ];
+
+    const stage = document.getElementById("stage");
+    const page = document.getElementById("page");
+    const under = document.getElementById("under");
+    const pageImg = document.getElementById("pageImg");
+    const underImg = document.getElementById("underImg");
+    const shade = document.getElementById("shade");
+
+    const label = document.getElementById("label");
+    const headline = document.getElementById("headline");
+    const pageNum = document.getElementById("pageNum");
+    const counter = document.getElementById("counter");
+    const dots = document.getElementById("dots");
+    const backStamp = document.getElementById("backStamp");
+
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
+
+    // ---- state ----
+    let idx = 0;
+
+    // drag
+    let dragging = false;
+    let startX = 0, startY = 0;
+    let lastX = 0;
+    let lastT = 0;
+    let vx = 0;
+    let dir = 0; // -1 = prev (drag right), +1 = next (drag left)
+    let originX = 0, originY = 0;
+
+    function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+
+    function buildDots(){
+      dots.innerHTML = "";
+      for(let i=0;i<PAGES.length;i++){
+        const d = document.createElement("div");
+        d.className = "dot" + (i===idx ? " active":"");
+        dots.appendChild(d);
+      }
+    }
+
+    function setMeta(){
+      counter.textContent = `${idx+1} / ${PAGES.length}`;
+      headline.textContent = PAGES[idx]?.headline ?? "—";
+      label.textContent = "Vault Zine";
+      pageNum.textContent = `Pg ${idx+1}`;
+      backStamp.textContent = `PAGE ${idx+1}`;
+      [...dots.children].forEach((d,i)=> d.classList.toggle("active", i===idx));
+    }
+
+    function preload(src){
+      return new Promise((res, rej)=>{
+        const im = new Image();
+        im.onload = ()=>res(src);
+        im.onerror = ()=>rej(new Error("Failed to load " + src));
+        im.src = src;
+      });
+    }
+
+    async function render(){
+      // set current and under images
+      const current = PAGES[idx];
+      const underPage = PAGES[idx + 1] || PAGES[idx - 1] || current;
+
+      // best-effort preload current + next
+      try{
+        await Promise.allSettled([
+          preload(current.src),
+          PAGES[idx+1] ? preload(PAGES[idx+1].src) : Promise.resolve()
+        ]);
+      }catch(e){}
+
+      pageImg.src = current.src;
+
+      // under shows "next" by default
+      underImg.src = (PAGES[idx+1] ? PAGES[idx+1].src : (PAGES[idx-1]?.src || current.src));
+
+      resetTransforms(true);
+      buildDots();
+      setMeta();
+      updateButtons();
+    }
+
+    function updateButtons(){
+      prevBtn.disabled = (idx === 0);
+      nextBtn.disabled = (idx === PAGES.length - 1);
+      prevBtn.style.opacity = prevBtn.disabled ? .35 : 1;
+      nextBtn.style.opacity = nextBtn.disabled ? .35 : 1;
+    }
+
+    function resetTransforms(immediate=false){
+      page.style.transition = immediate ? "none" : "transform .22s ease";
+      shade.style.transition = immediate ? "none" : "opacity .15s ease";
+      shade.style.opacity = "0";
+      page.style.transform = `translateZ(0) rotateY(0deg) translateX(0px)`;
+      page.style.transformOrigin = "100% 50%";
+      // ensure under shows next
+      underImg.style.filter = "none";
+      // allow transitions again after a tick
+      if(immediate){
+        requestAnimationFrame(()=>{ page.style.transition = "transform .22s ease"; });
+      }
+    }
+
+    function setUnderForDirection(d){
+      // d: +1 next, -1 prev
+      const target = PAGES[idx + d] || PAGES[idx];
+      underImg.src = target.src;
+      // tiny depth cue
+      underImg.style.filter = "saturate(.95) contrast(.98) brightness(.98)";
+    }
+
+    function startDrag(e){
+      if(e.button !== undefined && e.button !== 0) return; // left click only
+      if(PAGES.length <= 1) return;
+
+      const rect = page.getBoundingClientRect();
+      const x = (e.clientX ?? (e.touches && e.touches[0].clientX)) - rect.left;
+      const y = (e.clientY ?? (e.touches && e.touches[0].clientY)) - rect.top;
+
+      dragging = true;
+      startX = (e.clientX ?? e.touches[0].clientX);
+      startY = (e.clientY ?? e.touches[0].clientY);
+      lastX = startX;
+      lastT = performance.now();
+      vx = 0;
+      dir = 0;
+
+      // Anchor curl where finger first lands (paper-like)
+      originX = clamp(x / rect.width * 100, 0, 100);
+      originY = clamp(y / rect.height * 100, 0, 100);
+      page.style.transformOrigin = `${originX}% ${originY}%`;
+
+      page.style.transition = "none";
+      shade.style.transition = "none";
+      shade.style.opacity = "1";
+
+      page.setPointerCapture?.(e.pointerId);
+    }
+
+    function moveDrag(e){
+      if(!dragging) return;
+
+      const cx = (e.clientX ?? (e.touches && e.touches[0].clientX));
+      const dx = cx - startX;
+
+      // determine direction after small threshold
+      if(dir === 0 && Math.abs(dx) > 8){
+        dir = dx < 0 ? +1 : -1; // left drag -> next
+        // block invalid direction at ends
+        if((dir === +1 && idx === PAGES.length-1) || (dir === -1 && idx === 0)){
+          dir = 0;
+          // tiny resistance
+        }else{
+          setUnderForDirection(dir);
+        }
+      }
+
+      // Velocity
+      const now = performance.now();
+      const dt = Math.max(8, now - lastT);
+      vx = (cx - lastX) / dt; // px/ms
+      lastX = cx;
+      lastT = now;
+
+      // Paper motion:
+      // - translate a bit with finger
+      // - rotate around Y for curl feel (stronger as you drag)
+      // - clamp
+      const rect = page.getBoundingClientRect();
+      const norm = clamp(dx / rect.width, -1, 1);
+
+      // resistance if no valid direction
+      const resist = (dir === 0) ? 0.25 : 1;
+
+      const rotate = clamp(-norm * 115 * resist, -115, 115); // degrees
+      const translate = clamp(dx * 0.85 * resist, -rect.width*0.9, rect.width*0.9);
+
+      // Make the curl feel deeper when near edge
+      const z = Math.abs(norm) * 40;
+
+      page.style.transform = `translateZ(${z}px) rotateY(${rotate}deg) translateX(${translate}px)`;
+
+      // shadow strength
+      const sh = clamp(Math.abs(norm) * 1.1, 0, 1);
+      shade.style.opacity = String(0.10 + sh * 0.85);
+    }
+
+    function endDrag(){
+      if(!dragging) return;
+      dragging = false;
+
+      const rect = page.getBoundingClientRect();
+      // infer how far we turned by reading lastX-startX approx
+      const dx = lastX - startX;
+      const norm = clamp(dx / rect.width, -1, 1);
+
+      // decide commit:
+      // - if distance past threshold OR fast flick
+      const flick = Math.abs(vx) > 0.9; // px/ms
+      const distCommit = Math.abs(norm) > 0.28;
+
+      let commit = false;
+      if(dir !== 0){
+        // If going next, dx negative; if prev, dx positive
+        const aligned = (dir === +1 && dx < 0) || (dir === -1 && dx > 0);
+        commit = aligned && (distCommit || flick);
+      }
+
+      // animate to finish or snap back
+      page.style.transition = "transform .24s cubic-bezier(.2,.9,.2,1)";
+      shade.style.transition = "opacity .18s ease";
+
+      if(commit){
+        // fly off in that direction
+        const off = (dir === +1) ? -rect.width*1.25 : rect.width*1.25;
+        const rot = (dir === +1) ? 120 : -120;
+        page.style.transform = `translateZ(60px) rotateY(${rot}deg) translateX(${off}px)`;
+        shade.style.opacity = "0";
+
+        // after animation, update idx and reset
+        setTimeout(()=>{
+          idx = clamp(idx + dir, 0, PAGES.length-1);
+          render();
+        }, 210);
+      }else{
+        resetTransforms(false);
+      }
+    }
+
+    // Buttons
+    prevBtn.addEventListener("click", ()=>{
+      if(idx === 0) return;
+      idx--;
+      render();
+    });
+    nextBtn.addEventListener("click", ()=>{
+      if(idx >= PAGES.length-1) return;
+      idx++;
+      render();
+    });
+
+    // Pointer events (best on mobile)
+    page.addEventListener("pointerdown", (e)=> startDrag(e));
+    page.addEventListener("pointermove", (e)=> moveDrag(e));
+    page.addEventListener("pointerup", ()=> endDrag());
+    page.addEventListener("pointercancel", ()=> endDrag());
+    page.addEventListener("pointerleave", ()=> { if(dragging) endDrag(); });
+
+    // Prevent browser back-swipe quirks / overscroll
+    document.addEventListener("touchmove", (e)=>{
+      if(dragging) e.preventDefault();
+    }, { passive:false });
+
+    // Init
+    (function init(){
+      if(!PAGES.length){
+        alert("Add pages to the PAGES array.");
+        return;
+      }
+      render();
+    })();
+  </script>
+</body>
+</html>

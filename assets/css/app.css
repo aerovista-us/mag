@@ -129,6 +129,7 @@ body:before{
     rgba(8,10,14,.35);
   border: 1px solid rgba(255,255,255,.10);
   overflow:hidden;
+  pointer-events: none;
 }
 
 .page, .under{
@@ -144,6 +145,7 @@ body:before{
     linear-gradient(180deg, rgba(255,255,255,.04), transparent 40%),
     radial-gradient(800px 500px at 50% 10%, rgba(120,90,255,.10), transparent 55%),
     rgba(10,12,18,.40);
+  pointer-events: none;
 }
 
 .page{
@@ -154,6 +156,7 @@ body:before{
   transform-origin: 100% 50%;
   will-change: transform;
   touch-action: none;
+  pointer-events: auto;
   cursor: grab;
 }
 .page:active{ cursor:grabbing; }
