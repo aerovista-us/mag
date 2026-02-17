@@ -1,0 +1,9 @@
+{
+  "title": "Blue Box Protocol",
+  "pages": [
+    { "src": "page(1).png", "headline": "Marked: Legendary Holder" },
+    { "src": "page(2).png", "headline": "Boss Fight: The Curator" },
+    { "src": "page(3).png", "headline": "Deal’s Off." },
+    { "src": "page(4).png", "headline": "Keep It or Break It?" }
+  ]
+}
