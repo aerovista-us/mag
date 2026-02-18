@@ -181,12 +181,12 @@ function resetTransforms(immediate=false){
   page.style.removeProperty("--fold-opacity");
   if (feBend) feBend.setAttribute("scale", "0");
   if(immediate){
-    page.style.transformOrigin = "100% 50%";
+    page.style.transformOrigin = "0% 50%";
     requestAnimationFrame(()=>{ page.style.transition = "transform .26s cubic-bezier(.25,.85,.35,1)"; });
   }
   underImg.style.filter = "none";
   if(!immediate){
-    setTimeout(()=>{ page.style.transformOrigin = "100% 50%"; }, 340);
+    setTimeout(()=>{ page.style.transformOrigin = "0% 50%"; }, 340);
   }
 }
 
@@ -299,9 +299,8 @@ function startDrag(e){
   vx = 0;
   dir = 0;
 
-  originX = clamp((x / rect.width) * 100, 0, 100);
   originY = clamp((y / rect.height) * 100, 0, 100);
-  page.style.transformOrigin = `${originX}% ${originY}%`;
+  page.style.transformOrigin = "0% 50%";
 
   page.style.transition = "none";
   shade.style.transition = "none";
@@ -343,42 +342,36 @@ function moveDrag(e){
 
   const resist = (dir === 0) ? 0.45 : 1;
   const eased = norm * (0.7 + 0.3 * Math.abs(norm));
-  const translate = clamp(dx * 0.52 * resist, -rect.width * 0.88, rect.width * 0.88);
-  const z = Math.abs(norm) * 48;
-  const tiltX = (0.5 - originY / 100) * 12 * Math.sign(norm);
-  const rotateX = clamp(tiltX, -10, 10);
+  const liftZ = Math.abs(norm) * 72;
+  const slideX = clamp(dx * 0.18 * resist, -rect.width * 0.35, rect.width * 0.35);
+  const tiltX = (0.5 - originY / 100) * 14 * Math.sign(norm);
+  const rotateX = clamp(tiltX, -12, 12);
 
-  page.style.transform = `translateZ(${z}px) rotateX(${rotateX}deg) translateX(${translate}px)`;
+  page.style.transform = `translateZ(${liftZ}px) rotateX(${rotateX}deg) translateX(${slideX}px)`;
 
   const NUM_STRIPS = stripInners.length;
-  const maxCurl = 92 * resist;
-  const fold = originX;
+  const maxCurl = 88 * resist;
   const flap = (0.5 - originY / 100) * 1.2;
   for (let i = 0; i < NUM_STRIPS; i++) {
     const stripCenter = ((i + 0.5) / NUM_STRIPS) * 100;
-    const distFromFold = stripCenter - fold;
-    const range = 100 - fold + 1;
-    const tRaw = distFromFold <= 0 ? 0 : Math.min(1, distFromFold / range);
+    const tRaw = stripCenter / 100;
     const t = tRaw * tRaw * (3 - 2 * tRaw);
     const curl = t * maxCurl * Math.abs(eased);
     const rotY = -norm * curl;
     const rotX = flap * (1 - t) * 6 * Math.sign(norm);
-    const lift = t * t * 2.5;
+    const lift = t * t * 4;
     stripInners[i].style.transform = `translateZ(${lift}px) rotateX(${rotX}deg) rotateY(${rotY}deg)`;
   }
 
   const sh = clamp(Math.abs(norm) * 1.15, 0, 1);
   shade.style.opacity = String(0.12 + sh * 0.82);
-  page.style.setProperty("--fold-x", `${originX}%`);
-  page.style.setProperty("--fold-opacity", String(0.15 + sh * 0.75));
-  const foldNorm = originX / 100;
-  const band = 0.025;
+  page.style.setProperty("--fold-opacity", String(0.12 + sh * 0.6));
   if (foldEdgeA && foldPeak && foldEdgeB) {
-    foldEdgeA.setAttribute("offset", String(clamp(foldNorm - band, 0, 1)));
-    foldPeak.setAttribute("offset", String(clamp(foldNorm, 0, 1)));
-    foldEdgeB.setAttribute("offset", String(clamp(foldNorm + band, 0, 1)));
+    foldEdgeA.setAttribute("offset", "0");
+    foldPeak.setAttribute("offset", "0.02");
+    foldEdgeB.setAttribute("offset", "0.04");
   }
-  if (feBend) feBend.setAttribute("scale", String(0.8 + Math.abs(norm) * 3));
+  if (feBend) feBend.setAttribute("scale", String(0.5 + Math.abs(norm) * 2.2));
 }
 
 function endDrag(){
@@ -400,15 +393,14 @@ function endDrag(){
 
   if(commit){
     stripInners.forEach((el) => { el.style.transition = "none"; el.style.transform = "rotateY(0deg)"; });
-    page.style.transformOrigin = `${originX}% ${originY}%`;
-    page.style.transition = "transform .28s cubic-bezier(.22,.88,.32,1)";
+    page.style.transformOrigin = "0% 50%";
+    page.style.transition = "transform .3s cubic-bezier(.2,.85,.35,1)";
     shade.style.transition = "opacity .2s ease";
-    const off = (dir === +1) ? -rect.width * 1.3 : rect.width * 1.3;
-    const rot = (dir === +1) ? 118 : -118;
-    const tilt = (0.5 - originY / 100) * 10 * (dir === +1 ? 1 : -1);
-    page.style.transform = `translateZ(65px) rotateX(${tilt}deg) rotateY(${rot}deg) translateX(${off}px)`;
+    const tilt = (0.5 - originY / 100) * 8 * (dir === +1 ? 1 : -1);
+    const drift = (dir === +1 ? -1 : 1) * rect.width * 0.28;
+    page.style.transform = `translateZ(75px) rotateX(${tilt}deg) rotateY(${dir === +1 ? 115 : -115}deg) translateX(${drift}px)`;
     shade.style.opacity = "0";
-    setTimeout(()=> commitTurn(dir), 260);
+    setTimeout(()=> commitTurn(dir), 280);
   }else{
     page.style.transition = "transform .32s cubic-bezier(.34, 1.2, .42, 1)";
     shade.style.transition = "opacity .2s ease";

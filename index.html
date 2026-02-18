@@ -46,12 +46,14 @@
     <main class="stageWrap">
       <div class="stage" id="stage" aria-label="Magazine reader">
         <div class="frame"></div>
+        <div class="spread-left" aria-hidden="true"></div>
+        <div class="spine" aria-hidden="true"></div>
 
         <div class="under" id="under" aria-hidden="true">
           <img class="underMedia" id="underImg" alt="" />
         </div>
 
-        <div class="page" id="page" role="application" aria-label="Magazine page — drag to turn">
+        <div class="page" id="page" role="application" aria-label="Right page — drag to roll">
           <div class="page-crease" id="pageCrease" aria-hidden="true"></div>
           <div class="page-curl" id="pageCurl">
             <!-- 16 strips for smooth paper curl; JS indexes by .page-strip-inner -->
@@ -91,7 +93,7 @@
     </main>
 
     <footer class="footer">
-      <div class="hint" id="hint">Touch anywhere to start — the page pulls from your finger and curls like paper.</div>
+      <div class="hint" id="hint">Right page in focus. Swipe right-to-left to roll the page; the center seam stays fixed.</div>
       <div class="progress" id="dots" aria-hidden="true"></div>
     </footer>
   </div>
