@@ -196,7 +196,7 @@ body:before{
   transition: opacity .08s ease;
 }
 
-/* Paper curl: 6 strips that bend from the touch point */
+/* Paper curl: 16 strips + SVG bend for smooth flappy feel */
 .page-curl{
   position:absolute; inset:0;
   display:flex;
@@ -205,6 +205,7 @@ body:before{
   overflow:hidden;
   transform-style: preserve-3d;
   backface-visibility: hidden;
+  filter: url(#paperBend);
 }
 .page-strip{
   flex: 1 1 0;
@@ -220,10 +221,10 @@ body:before{
 }
 .page-strip-img{
   display:block;
-  width:600%;
+  width:1600%;
   height:100%;
   object-fit: cover;
-  object-position: calc(var(--strip-i) * 16.666%) 0;
+  object-position: calc(var(--strip-i) * 6.25%) 0;
   background:#0b0d12;
 }
 

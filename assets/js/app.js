@@ -13,6 +13,10 @@ const underImg = document.getElementById("underImg");
 const shade = document.getElementById("shade");
 const stripInners = document.querySelectorAll(".page-strip-inner");
 const stripImgs = document.querySelectorAll(".page-strip-img");
+const foldEdgeA = document.getElementById("foldEdgeA");
+const foldPeak = document.getElementById("foldPeak");
+const foldEdgeB = document.getElementById("foldEdgeB");
+const feBend = document.getElementById("feBend");
 
 const label = document.getElementById("label");
 const headline = document.getElementById("headline");
@@ -173,8 +177,9 @@ function resetTransforms(immediate=false){
   shade.style.transition = immediate ? "none" : "opacity .2s ease";
   shade.style.opacity = "0";
   page.style.transform = "translateZ(0) rotateX(0deg) translateX(0px)";
-  stripInners.forEach((el) => { el.style.transition = immediate ? "none" : "transform .28s cubic-bezier(.3, 1.1, .4, 1)"; el.style.transform = "rotateY(0deg)"; });
+  stripInners.forEach((el) => { el.style.transition = immediate ? "none" : "transform .28s cubic-bezier(.3, 1.1, .4, 1)"; el.style.transform = "translateZ(0) rotateX(0deg) rotateY(0deg)"; });
   page.style.removeProperty("--fold-opacity");
+  if (feBend) feBend.setAttribute("scale", "0");
   if(immediate){
     page.style.transformOrigin = "100% 50%";
     requestAnimationFrame(()=>{ page.style.transition = "transform .26s cubic-bezier(.25,.85,.35,1)"; });
@@ -302,6 +307,7 @@ function startDrag(e){
   shade.style.transition = "none";
   shade.style.opacity = "1";
   stripInners.forEach((el) => { el.style.transition = "none"; });
+  if (feBend) feBend.setAttribute("scale", "0");
 
   if(e.pointerId !== undefined) page.setPointerCapture?.(e.pointerId);
 }
@@ -345,22 +351,34 @@ function moveDrag(e){
   page.style.transform = `translateZ(${z}px) rotateX(${rotateX}deg) translateX(${translate}px)`;
 
   const NUM_STRIPS = stripInners.length;
-  const maxCurl = 98 * resist;
+  const maxCurl = 92 * resist;
   const fold = originX;
+  const flap = (0.5 - originY / 100) * 1.2;
   for (let i = 0; i < NUM_STRIPS; i++) {
     const stripCenter = ((i + 0.5) / NUM_STRIPS) * 100;
     const distFromFold = stripCenter - fold;
     const range = 100 - fold + 1;
-    const t = distFromFold <= 0 ? 0 : Math.min(1, distFromFold / range);
+    const tRaw = distFromFold <= 0 ? 0 : Math.min(1, distFromFold / range);
+    const t = tRaw * tRaw * (3 - 2 * tRaw);
     const curl = t * maxCurl * Math.abs(eased);
-    const rot = -norm * curl;
-    stripInners[i].style.transform = `rotateY(${rot}deg)`;
+    const rotY = -norm * curl;
+    const rotX = flap * (1 - t) * 6 * Math.sign(norm);
+    const lift = t * t * 2.5;
+    stripInners[i].style.transform = `translateZ(${lift}px) rotateX(${rotX}deg) rotateY(${rotY}deg)`;
   }
 
   const sh = clamp(Math.abs(norm) * 1.15, 0, 1);
   shade.style.opacity = String(0.12 + sh * 0.82);
   page.style.setProperty("--fold-x", `${originX}%`);
   page.style.setProperty("--fold-opacity", String(0.15 + sh * 0.75));
+  const foldNorm = originX / 100;
+  const band = 0.025;
+  if (foldEdgeA && foldPeak && foldEdgeB) {
+    foldEdgeA.setAttribute("offset", String(clamp(foldNorm - band, 0, 1)));
+    foldPeak.setAttribute("offset", String(clamp(foldNorm, 0, 1)));
+    foldEdgeB.setAttribute("offset", String(clamp(foldNorm + band, 0, 1)));
+  }
+  if (feBend) feBend.setAttribute("scale", String(0.8 + Math.abs(norm) * 3));
 }
 
 function endDrag(){
