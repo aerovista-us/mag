@@ -9,9 +9,10 @@ const LS_KEY = "vaultzine.reader.v1"; // {magId, pageIdx}
 const stage = document.getElementById("stage");
 const page = document.getElementById("page");
 const under = document.getElementById("under");
-const pageImg = document.getElementById("pageImg");
 const underImg = document.getElementById("underImg");
 const shade = document.getElementById("shade");
+const stripInners = document.querySelectorAll(".page-strip-inner");
+const stripImgs = document.querySelectorAll(".page-strip-img");
 
 const label = document.getElementById("label");
 const headline = document.getElementById("headline");
@@ -171,7 +172,9 @@ function resetTransforms(immediate=false){
   page.style.transition = immediate ? "none" : "transform .32s cubic-bezier(.34, 1.2, .42, 1)";
   shade.style.transition = immediate ? "none" : "opacity .2s ease";
   shade.style.opacity = "0";
-  page.style.transform = "translateZ(0) rotateX(0deg) rotateY(0deg) translateX(0px)";
+  page.style.transform = "translateZ(0) rotateX(0deg) translateX(0px)";
+  stripInners.forEach((el) => { el.style.transition = immediate ? "none" : "transform .28s cubic-bezier(.3, 1.1, .4, 1)"; el.style.transform = "rotateY(0deg)"; });
+  page.style.removeProperty("--fold-opacity");
   if(immediate){
     page.style.transformOrigin = "100% 50%";
     requestAnimationFrame(()=>{ page.style.transition = "transform .26s cubic-bezier(.25,.85,.35,1)"; });
@@ -217,7 +220,7 @@ async function render(){
     maybeNext ? preload(maybeNext) : Promise.resolve()
   ]);
 
-  pageImg.src = current.src;
+  stripImgs.forEach((img) => (img.src = current.src));
 
   // under defaults to next page (or next mag first page)
   if(idx < PAGES.length - 1){
@@ -291,14 +294,14 @@ function startDrag(e){
   vx = 0;
   dir = 0;
 
-  // anchor to first touch position
-  originX = clamp(x / rect.width * 100, 0, 100);
-  originY = clamp(y / rect.height * 100, 0, 100);
+  originX = clamp((x / rect.width) * 100, 0, 100);
+  originY = clamp((y / rect.height) * 100, 0, 100);
   page.style.transformOrigin = `${originX}% ${originY}%`;
 
   page.style.transition = "none";
   shade.style.transition = "none";
   shade.style.opacity = "1";
+  stripInners.forEach((el) => { el.style.transition = "none"; });
 
   if(e.pointerId !== undefined) page.setPointerCapture?.(e.pointerId);
 }
@@ -332,22 +335,32 @@ function moveDrag(e){
   const rect = page.getBoundingClientRect();
   const norm = clamp(dx / rect.width, -1, 1);
 
-  // Paper-like: fold stays under finger (origin at touch); curl follows naturally
   const resist = (dir === 0) ? 0.45 : 1;
-  const eased = norm * (0.72 + 0.28 * Math.abs(norm)); // soft start, then full response
-  const rotateY = clamp(-eased * 118 * resist, -118, 118);
-  const translate = clamp(dx * 0.5 * resist, -rect.width * 0.88, rect.width * 0.88);
-  const z = Math.abs(norm) * 55;
+  const eased = norm * (0.7 + 0.3 * Math.abs(norm));
+  const translate = clamp(dx * 0.52 * resist, -rect.width * 0.88, rect.width * 0.88);
+  const z = Math.abs(norm) * 48;
+  const tiltX = (0.5 - originY / 100) * 12 * Math.sign(norm);
+  const rotateX = clamp(tiltX, -10, 10);
 
-  // Slight rotateX from where you grabbed: top vs bottom changes tilt of the fold (3D paper)
-  const tiltX = (0.5 - originY / 100) * 14 * Math.sign(norm);
-  const rotateX = clamp(tiltX, -12, 12);
+  page.style.transform = `translateZ(${z}px) rotateX(${rotateX}deg) translateX(${translate}px)`;
 
-  page.style.transform =
-    `translateZ(${z}px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateX(${translate}px)`;
+  const NUM_STRIPS = stripInners.length;
+  const maxCurl = 98 * resist;
+  const fold = originX;
+  for (let i = 0; i < NUM_STRIPS; i++) {
+    const stripCenter = ((i + 0.5) / NUM_STRIPS) * 100;
+    const distFromFold = stripCenter - fold;
+    const range = 100 - fold + 1;
+    const t = distFromFold <= 0 ? 0 : Math.min(1, distFromFold / range);
+    const curl = t * maxCurl * Math.abs(eased);
+    const rot = -norm * curl;
+    stripInners[i].style.transform = `rotateY(${rot}deg)`;
+  }
 
   const sh = clamp(Math.abs(norm) * 1.15, 0, 1);
   shade.style.opacity = String(0.12 + sh * 0.82);
+  page.style.setProperty("--fold-x", `${originX}%`);
+  page.style.setProperty("--fold-opacity", String(0.15 + sh * 0.75));
 }
 
 function endDrag(){
@@ -368,7 +381,7 @@ function endDrag(){
   }
 
   if(commit){
-    // Flip away from the same anchor (fold follows where you held)
+    stripInners.forEach((el) => { el.style.transition = "none"; el.style.transform = "rotateY(0deg)"; });
     page.style.transformOrigin = `${originX}% ${originY}%`;
     page.style.transition = "transform .28s cubic-bezier(.22,.88,.32,1)";
     shade.style.transition = "opacity .2s ease";
