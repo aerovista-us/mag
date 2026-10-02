@@ -35,7 +35,9 @@ const accountAction = document.getElementById("accountAction");
 const accountPill = document.getElementById("accountPill");
 
 // runtime state
-let MAGS = [];                // [{id,title,pages:[{src,headline}]}]
+let MAGS = [];                // authenticated issues [{id,title,pages:[{src,headline}]}]
+let CATALOG = [];             // public metadata only
+let MAG_SESSION = null;       // safe identity + CSRF projection, never the AVCC token
 let currentMagIndex = 0;
 let PAGES = [];
 let idx = 0;
@@ -201,7 +203,7 @@ async function discoverMags(){
   return mags;
 }
 
-function chooseClosest()function chooseClosest(){
+function chooseClosest(){
   // 1) URL ?mag=# (optional)
   const urlMag = getQueryInt("mag");
   if(urlMag){
