@@ -44,6 +44,21 @@
     </header>
 
     <main class="stageWrap">
+      <section class="reader-gate" id="readerGate" hidden aria-live="polite">
+        <div class="reader-gate-inner">
+          <div class="reader-gate-copy">
+            <p class="gate-kicker">AeroVista Magazines</p>
+            <h1>Browse freely. Sign in when you’re ready to read.</h1>
+            <p>The magazine shelf is public. Full issue pages are delivered only to an active AeroVista Account.</p>
+            <div class="gate-actions">
+              <button class="gate-primary" id="readerLogin" type="button">Log in to read</button>
+              <button class="gate-secondary" id="readerRegister" type="button">Create free account</button>
+            </div>
+            <p class="gate-note">One account also carries your profile and connected AeroVista app identity.</p>
+          </div>
+          <div class="issue-shelf" id="issueShelf" aria-label="Available magazine issues"></div>
+        </div>
+      </section>
       <div class="stage" id="stage" aria-label="Magazine reader">
         <div class="frame"></div>
         <div class="spread-left" aria-hidden="true"></div>
@@ -98,6 +113,6 @@
     </footer>
   </div>
 
-  <script src="./assets/js/app.js"></script>
+  <script src="./assets/js/app.js?v=account-reader-v1-20261002"></script>
 </body>
 </html>
