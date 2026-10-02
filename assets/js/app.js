@@ -158,6 +158,8 @@ function setAccountUi(session){
 function showAccountGate(){
   readerGate.hidden = false;
   stage?.setAttribute("aria-hidden", "true");
+  prevBtn.disabled = true;
+  nextBtn.disabled = true;
   renderIssueShelf();
 }
 
@@ -620,11 +622,11 @@ window.addEventListener("popstate", () => {
     }
     await initializeAuthenticatedReader();
   }catch(error){
-    if(error?.status === 401){
-      setAccountUi({ authenticated: false, identity: null });
-      showAccountGate();
-      return;
-    }
-    showReaderUnavailable(error);
+    setAccountUi({ authenticated: false, identity: null });
+    if(accountLabel) accountLabel.textContent = error?.status === 401
+      ? "Account required to read"
+      : "Account service unavailable";
+    showAccountGate();
+    if(error?.status !== 401) console.warn("[mag] account check unavailable:", error?.message || error);
   }
 })();
