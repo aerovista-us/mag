@@ -1,9 +1,7 @@
 /* Vault Zine — dynamic mags + tactile page turn (GitHub Pages friendly) */
 
-const MAX_MAGS_TO_PROBE = 60;     // tries mag1..mag60
-const MAX_MISSES = 6;             // stop after N missing mags in a row
-const MAG_PREFIX = "mag";
-const MANIFEST_NAME = "manifest.json";
+const AUTH_ORIGIN = "https://mag-auth.aerovista.us";
+const CATALOG_URL = "./catalog.json";
 const LS_KEY = "vaultzine.reader.v1"; // {magId, pageIdx}
 
 const stage = document.getElementById("stage");
@@ -28,6 +26,13 @@ const zineTitle = document.getElementById("zineTitle");
 
 const prevBtn = document.getElementById("prevBtn");
 const nextBtn = document.getElementById("nextBtn");
+const readerGate = document.getElementById("readerGate");
+const issueShelf = document.getElementById("issueShelf");
+const readerLogin = document.getElementById("readerLogin");
+const readerRegister = document.getElementById("readerRegister");
+const accountLabel = document.getElementById("accountLabel");
+const accountAction = document.getElementById("accountAction");
+const accountPill = document.getElementById("accountPill");
 
 // runtime state
 let MAGS = [];                // [{id,title,pages:[{src,headline}]}]
@@ -65,44 +70,138 @@ function saveProgress(){
   localStorage.setItem(LS_KEY, JSON.stringify({ magId, pageIdx: idx }));
 }
 
-async function fetchJSON(url){
-  const r = await fetch(url, { cache: "no-store" });
-  if(!r.ok) throw new Error(`HTTP ${r.status} ${url}`);
-  return await r.json();
+async function fetchJSON(url, options = {}){
+  const r = await fetch(url, { cache: "no-store", ...options });
+  const data = await r.json().catch(() => ({}));
+  if(!r.ok){
+    const error = new Error(data?.error || `HTTP ${r.status} ${url}`);
+    error.status = r.status;
+    error.code = data?.code;
+    throw error;
+  }
+  return data;
 }
 
-async function tryLoadMag(magId){
-  const base = `${MAG_PREFIX}${magId}`;
-  const url = `${base}/${MANIFEST_NAME}`;
-  const data = await fetchJSON(url);
+function escapeHtml(value){
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
 
-  const pages = (data.pages || []).map((p, i)=>({
-    src: `${base}/${p.src}`,
-    headline: p.headline || `Page ${i+1}`
+function currentReaderNext(){
+  return location.pathname + location.search + location.hash;
+}
+
+function accountRoute(kind){
+  return `${AUTH_ORIGIN}/${kind}?next=${encodeURIComponent(currentReaderNext())}`;
+}
+
+async function loadCatalog(){
+  const data = await fetchJSON(CATALOG_URL);
+  CATALOG = Array.isArray(data?.issues) ? data.issues : [];
+  return CATALOG;
+}
+
+function renderIssueShelf(){
+  if(!issueShelf) return;
+  issueShelf.innerHTML = "";
+  if(!CATALOG.length){
+    issueShelf.innerHTML = '<p class="issue-empty">No issues are published yet.</p>';
+    return;
+  }
+  for(const issue of CATALOG){
+    const card = document.createElement("article");
+    card.className = "issue-card";
+    card.innerHTML = `
+      <div class="issue-number">ISSUE ${String(issue.number || issue.id || "").padStart(2, "0")}</div>
+      <h2>${escapeHtml(issue.title || "AeroVista Magazine")}</h2>
+      <p>${escapeHtml(issue.description || "An AeroVista magazine issue.")}</p>
+      <div class="issue-card-footer">
+        <span class="issue-lock">Account required to read</span>
+        <button type="button" class="issue-open">Open issue</button>
+      </div>`;
+    card.querySelector(".issue-open").addEventListener("click", () => {
+      const magNumber = Number(issue.number || issue.id || 1);
+      if(MAG_SESSION?.authenticated){
+        const target = new URL(location.href);
+        target.searchParams.set("mag", String(magNumber));
+        history.pushState({}, "", target);
+        initializeAuthenticatedReader().catch(showReaderUnavailable);
+      }else{
+        location.href = accountRoute("login");
+      }
+    });
+    issueShelf.appendChild(card);
+  }
+}
+
+function setAccountUi(session){
+  MAG_SESSION = session;
+  const authenticated = session?.authenticated === true;
+  accountPill?.classList.toggle("is-authenticated", authenticated);
+  if(accountLabel){
+    accountLabel.textContent = authenticated
+      ? (session.identity?.name || session.identity?.email || "AeroVista member")
+      : "Account required to read";
+  }
+  if(accountAction){
+    accountAction.hidden = false;
+    accountAction.textContent = authenticated ? "Sign out" : "Log in";
+  }
+}
+
+function showAccountGate(){
+  readerGate.hidden = false;
+  stage?.setAttribute("aria-hidden", "true");
+  renderIssueShelf();
+}
+
+function hideAccountGate(){
+  readerGate.hidden = true;
+  stage?.removeAttribute("aria-hidden");
+}
+
+function showReaderUnavailable(error){
+  console.warn("[mag] reader unavailable:", error?.message || error);
+  counter.textContent = "Reader unavailable";
+  zineTitle.textContent = "AeroVista Magazines";
+  headline.textContent = "Please try again";
+}
+
+async function checkMagazineSession(){
+  const data = await fetchJSON(`${AUTH_ORIGIN}/api/session`, { credentials: "include" });
+  setAccountUi(data);
+  return data;
+}
+
+async function loadProtectedIssue(issue){
+  const slug = issue.slug || `mag${issue.number || issue.id}`;
+  const data = await fetchJSON(`${AUTH_ORIGIN}/api/mags/${encodeURIComponent(slug)}/manifest`, {
+    credentials: "include",
+  });
+  const pages = (data.pages || []).map((page, i) => ({
+    src: page.src,
+    headline: page.headline || `Page ${i + 1}`,
   }));
-  if(!pages.length) throw new Error(`Empty pages in ${url}`);
-
-  return { id: magId, title: data.title || `Magazine ${magId}`, pages };
+  if(!pages.length) throw new Error("Protected issue has no pages");
+  return {
+    id: Number(issue.number || issue.id),
+    slug,
+    title: data.title || issue.title || `Magazine ${issue.number || issue.id}`,
+    pages,
+  };
 }
 
 async function discoverMags(){
   const mags = [];
-  let misses = 0;
-
-  for(let id=1; id<=MAX_MAGS_TO_PROBE; id++){
-    try{
-      const mag = await tryLoadMag(id);
-      mags.push(mag);
-      misses = 0;
-    }catch{
-      misses++;
-      if(misses >= MAX_MISSES) break;
-    }
-  }
+  for(const issue of CATALOG) mags.push(await loadProtectedIssue(issue));
   return mags;
 }
 
-function chooseClosest(){
+function chooseClosest()function chooseClosest(){
   // 1) URL ?mag=# (optional)
   const urlMag = getQueryInt("mag");
   if(urlMag){
@@ -170,6 +269,19 @@ function preload(src){
     im.onerror = ()=>rej(new Error("Failed to load " + src));
     im.src = src;
   });
+}
+
+async function handleProtectedAssetFailure(){
+  try{
+    const session = await checkMagazineSession();
+    if(!session.authenticated){
+      MAGS = [];
+      PAGES = [];
+      showAccountGate();
+    }
+  }catch(error){
+    showReaderUnavailable(error);
+  }
 }
 
 function resetTransforms(immediate=false){
@@ -413,6 +525,9 @@ document.addEventListener("touchmove", (e)=>{
   if(dragging) e.preventDefault();
 }, { passive:false });
 
+stripImgs.forEach((img) => img.addEventListener("error", handleProtectedAssetFailure));
+underImg.addEventListener("error", handleProtectedAssetFailure);
+
 // pointer events
 page.addEventListener("pointerdown", startDrag);
 page.addEventListener("pointermove", moveDrag);
@@ -448,17 +563,66 @@ nextBtn.addEventListener("click", ()=>{
   }
 });
 
-// init
-(async function init(){
+async function initializeAuthenticatedReader(){
+  const session = MAG_SESSION?.authenticated ? MAG_SESSION : await checkMagazineSession();
+  if(!session.authenticated){
+    showAccountGate();
+    return;
+  }
+  hideAccountGate();
   const mags = await discoverMags();
   if(!mags.length){
-    counter.textContent = "No mags found";
-    zineTitle.textContent = "Vault Zine — No magazines found";
-    headline.textContent = "Add mag1/manifest.json";
+    counter.textContent = "No issues found";
+    zineTitle.textContent = "AeroVista Magazines";
+    headline.textContent = "No published issues";
     return;
   }
   MAGS = mags;
-
   const choice = chooseClosest();
   setMag(choice.magIndex, choice.pageIdx);
+}
+
+readerLogin?.addEventListener("click", () => { location.href = accountRoute("login"); });
+readerRegister?.addEventListener("click", () => { location.href = accountRoute("register"); });
+accountAction?.addEventListener("click", async () => {
+  if(!MAG_SESSION?.authenticated){
+    location.href = accountRoute("login");
+    return;
+  }
+  try{
+    await fetchJSON(`${AUTH_ORIGIN}/api/logout`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "X-Mag-CSRF": MAG_SESSION.csrfToken || "" },
+    });
+  }finally{
+    setAccountUi({ authenticated: false, identity: null });
+    MAGS = [];
+    PAGES = [];
+    showAccountGate();
+  }
+});
+
+window.addEventListener("popstate", () => {
+  if(MAG_SESSION?.authenticated) initializeAuthenticatedReader().catch(showReaderUnavailable);
+});
+
+(async function init(){
+  try{
+    await loadCatalog();
+    renderIssueShelf();
+    const session = await checkMagazineSession();
+    if(!session.authenticated){
+      showAccountGate();
+      return;
+    }
+    await initializeAuthenticatedReader();
+  }catch(error){
+    if(error?.status === 401){
+      setAccountUi({ authenticated: false, identity: null });
+      showAccountGate();
+      return;
+    }
+    showReaderUnavailable(error);
+  }
 })();
