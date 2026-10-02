@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "issues": [
+    {
+      "id": 1,
+      "number": 1,
+      "slug": "mag1",
+      "title": "Blue Box Protocol",
+      "description": "A tactile AeroVista issue built around decisions, encounters, and what happens after the box opens.",
+      "requiresAccount": true
+    }
+  ]
+}
