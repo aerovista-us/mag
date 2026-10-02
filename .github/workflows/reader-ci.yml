@@ -1,0 +1,30 @@
+name: Magazine Public Reader CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  reader:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate public reader JavaScript
+        run: node --check assets/js/app.js
+      - name: Validate public catalog JSON
+        run: node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync('catalog.json','utf8')); if(!Array.isArray(d.issues)) process.exit(1); if(d.issues.some(i=>!i.requiresAccount)) process.exit(2)"
+      - name: Fail if protected issue assets are public
+        shell: bash
+        run: |
+          if find mag1 mag -type f \( -name 'page*.png' -o -name 'manifest.json' -o -name 'manifest.json.txt' \) -print 2>/dev/null | grep -q .; then
+            echo "Protected magazine assets must not live in this public repository."
+            exit 1
+          fi
+      - name: Ensure reader uses protected origin
+        run: |
+          grep -q 'https://mag-auth.aerovista.us' assets/js/app.js
+          grep -q '/api/mags/' assets/js/app.js
