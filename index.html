@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>Vault Zine — Mobile Magazine</title>
-  <link rel="stylesheet" href="./assets/css/app.css" />
+  <link rel="stylesheet" href="./assets/css/app.css?v=account-reader-v1-20261002" />
 </head>
 <body>
   <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
@@ -35,6 +35,11 @@
       </div>
 
       <div class="controls">
+        <div class="account-pill" id="accountPill">
+          <span class="account-dot"></span>
+          <span id="accountLabel">Checking account…</span>
+          <button class="account-action" id="accountAction" type="button" hidden>Account</button>
+        </div>
         <div class="pill">
           <button class="btn" id="prevBtn" aria-label="Previous page">⟵</button>
           <div id="counter">—</div>
@@ -44,6 +49,21 @@
     </header>
 
     <main class="stageWrap">
+      <section class="reader-gate" id="readerGate" hidden aria-live="polite">
+        <div class="reader-gate-inner">
+          <div class="reader-gate-copy">
+            <p class="gate-kicker">AeroVista Magazines</p>
+            <h1>Browse freely. Sign in when you’re ready to read.</h1>
+            <p>The magazine shelf is public. Full issue pages are delivered only to an active AeroVista Account.</p>
+            <div class="gate-actions">
+              <button class="gate-primary" id="readerLogin" type="button">Log in to read</button>
+              <button class="gate-secondary" id="readerRegister" type="button">Create free account</button>
+            </div>
+            <p class="gate-note">One account also carries your profile and connected AeroVista app identity.</p>
+          </div>
+          <div class="issue-shelf" id="issueShelf" aria-label="Available magazine issues"></div>
+        </div>
+      </section>
       <div class="stage" id="stage" aria-label="Magazine reader">
         <div class="frame"></div>
         <div class="spread-left" aria-hidden="true"></div>
@@ -98,6 +118,6 @@
     </footer>
   </div>
 
-  <script src="./assets/js/app.js"></script>
+  <script src="./assets/js/app.js?v=account-reader-v1-20261002"></script>
 </body>
 </html>

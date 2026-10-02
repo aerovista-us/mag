@@ -374,3 +374,188 @@ body:before{
   border: 1px solid rgba(255,255,255,.10);
 }
 .dot.active{ background: rgba(255,255,255,.62); }
+
+
+/* Account-required reader shell */
+.account-pill{
+  display:flex;
+  align-items:center;
+  gap:.5rem;
+  max-width:min(50vw, 320px);
+  padding:.42rem .52rem;
+  border:1px solid rgba(255,255,255,.13);
+  border-radius:999px;
+  background:rgba(8,12,18,.66);
+  backdrop-filter:blur(14px);
+  color:rgba(238,243,250,.82);
+  font-size:.72rem;
+  white-space:nowrap;
+}
+.account-dot{
+  width:8px;
+  height:8px;
+  flex:0 0 auto;
+  border-radius:50%;
+  background:#d59b62;
+  box-shadow:0 0 0 4px rgba(213,155,98,.08);
+}
+.account-pill.is-authenticated .account-dot{
+  background:#58d0a3;
+  box-shadow:0 0 0 4px rgba(88,208,163,.1);
+}
+#accountLabel{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.account-action{
+  appearance:none;
+  border:0;
+  border-left:1px solid rgba(255,255,255,.12);
+  padding:.15rem .15rem .15rem .5rem;
+  background:transparent;
+  color:#aebcff;
+  font:inherit;
+  font-weight:700;
+  cursor:pointer;
+}
+.reader-gate{
+  position:absolute;
+  inset:0;
+  z-index:40;
+  overflow:auto;
+  padding:clamp(1rem,4vw,2.4rem);
+  background:
+    radial-gradient(circle at 18% 16%, rgba(91,115,255,.17), transparent 28rem),
+    radial-gradient(circle at 86% 70%, rgba(79,190,152,.11), transparent 24rem),
+    linear-gradient(155deg, rgba(9,12,18,.98), rgba(12,16,24,.98));
+}
+.reader-gate[hidden]{display:none}
+.reader-gate-inner{
+  width:min(1080px,100%);
+  min-height:100%;
+  margin:0 auto;
+  display:grid;
+  grid-template-columns:minmax(0,.9fr) minmax(320px,1.1fr);
+  align-items:center;
+  gap:clamp(1.5rem,5vw,4rem);
+}
+.gate-kicker{
+  margin:0 0 .7rem;
+  color:#9aaaff;
+  font-size:.72rem;
+  font-weight:800;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+.reader-gate h1{
+  max-width:650px;
+  margin:0;
+  color:#f7f9fc;
+  font-size:clamp(2rem,5vw,4.8rem);
+  line-height:.98;
+  letter-spacing:-.055em;
+}
+.reader-gate-copy>p:not(.gate-kicker):not(.gate-note){
+  max-width:600px;
+  margin:1.1rem 0 0;
+  color:#aab4c3;
+  line-height:1.65;
+}
+.gate-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:.65rem;
+  margin-top:1.45rem;
+}
+.gate-primary,.gate-secondary,.issue-open{
+  appearance:none;
+  min-height:44px;
+  border-radius:10px;
+  padding:.7rem 1rem;
+  font:inherit;
+  font-weight:800;
+  cursor:pointer;
+}
+.gate-primary,.issue-open{
+  border:1px solid transparent;
+  background:linear-gradient(135deg,#617dff,#7a8cff);
+  color:white;
+  box-shadow:0 12px 34px rgba(79,104,255,.24);
+}
+.gate-secondary{
+  border:1px solid rgba(255,255,255,.16);
+  background:rgba(255,255,255,.03);
+  color:#dfe5ef;
+}
+.gate-note{
+  margin:.85rem 0 0;
+  color:#6f7b8e;
+  font-size:.75rem;
+}
+.issue-shelf{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:.8rem;
+}
+.issue-card{
+  min-height:220px;
+  display:flex;
+  flex-direction:column;
+  padding:1.15rem;
+  border:1px solid rgba(151,166,197,.14);
+  border-radius:18px;
+  background:
+    linear-gradient(155deg,rgba(27,34,49,.88),rgba(13,17,25,.92));
+  box-shadow:0 18px 50px rgba(0,0,0,.24);
+}
+.issue-card:nth-child(2n){
+  background:
+    radial-gradient(circle at 82% 15%,rgba(78,191,151,.12),transparent 12rem),
+    linear-gradient(155deg,rgba(24,31,43,.88),rgba(13,17,25,.92));
+}
+.issue-number{
+  color:#8294f4;
+  font-size:.68rem;
+  font-weight:850;
+  letter-spacing:.14em;
+}
+.issue-card h2{
+  margin:.7rem 0 .4rem;
+  color:#f0f4fa;
+  font-size:1.2rem;
+  letter-spacing:-.025em;
+}
+.issue-card p{
+  margin:0;
+  color:#8f9aac;
+  line-height:1.5;
+  font-size:.78rem;
+}
+.issue-card-footer{
+  margin-top:auto;
+  padding-top:1.2rem;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:.65rem;
+}
+.issue-lock{
+  color:#778397;
+  font-size:.66rem;
+}
+.issue-open{
+  min-height:36px;
+  padding:.45rem .72rem;
+  font-size:.7rem;
+}
+.issue-empty{
+  grid-column:1/-1;
+  color:#8f9aac;
+}
+@media(max-width:760px){
+  .reader-gate-inner{grid-template-columns:1fr;align-items:start}
+  .reader-gate h1{font-size:clamp(2.1rem,10vw,3.4rem)}
+  .issue-shelf{grid-template-columns:1fr}
+  .account-pill{max-width:46vw}
+}
